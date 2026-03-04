@@ -17,6 +17,21 @@ services:
       timeout: 5s
       retries: 5
 
+  liquibase:
+    image: liquibase/liquibase:4.25
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./liquibase:/liquibase/changelog
+    command:
+      - --defaults-file=/liquibase/changelog/liquibase.properties
+      - update
+    environment:
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://db:5432/marketplace
+      LIQUIBASE_COMMAND_USERNAME: marketplace
+      LIQUIBASE_COMMAND_PASSWORD: marketplace
+
   app:
     build: .
     ports:
@@ -29,13 +44,12 @@ services:
       REFRESH_TOKEN_EXPIRE_DAYS: 7
       ORDER_RATE_LIMIT_MINUTES: 5
     depends_on:
-      db:
-        condition: service_healthy
+      liquibase:
+        condition: service_completed_successfully
     volumes:
       - ./app:/app/app
-      - ./alembic:/app/alembic
       - ./openapi:/app/openapi
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 volumes:
   postgres_data:

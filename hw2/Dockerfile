@@ -13,7 +13,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY . .
+COPY app ./app
+COPY openapi ./openapi
 
 # Generate models from OpenAPI spec
 RUN mkdir -p app/generated && \

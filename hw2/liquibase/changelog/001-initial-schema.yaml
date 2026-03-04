@@ -1,0 +1,496 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-enums
+      author: marketplace
+      changes:
+        - sql:
+            sql: |
+              DO $$ BEGIN
+                  CREATE TYPE user_role AS ENUM ('USER', 'SELLER', 'ADMIN');
+              EXCEPTION
+                  WHEN duplicate_object THEN null;
+              END $$;
+        - sql:
+            sql: |
+              DO $$ BEGIN
+                  CREATE TYPE product_status AS ENUM ('ACTIVE', 'INACTIVE', 'ARCHIVED');
+              EXCEPTION
+                  WHEN duplicate_object THEN null;
+              END $$;
+        - sql:
+            sql: |
+              DO $$ BEGIN
+                  CREATE TYPE order_status AS ENUM ('CREATED', 'PAYMENT_PENDING', 'PAID', 'SHIPPED', 'COMPLETED', 'CANCELED');
+              EXCEPTION
+                  WHEN duplicate_object THEN null;
+              END $$;
+        - sql:
+            sql: |
+              DO $$ BEGIN
+                  CREATE TYPE discount_type AS ENUM ('PERCENTAGE', 'FIXED_AMOUNT');
+              EXCEPTION
+                  WHEN duplicate_object THEN null;
+              END $$;
+        - sql:
+            sql: |
+              DO $$ BEGIN
+                  CREATE TYPE operation_type AS ENUM ('CREATE_ORDER', 'UPDATE_ORDER');
+              EXCEPTION
+                  WHEN duplicate_object THEN null;
+              END $$;
+      rollback:
+        - sql:
+            sql: DROP TYPE IF EXISTS operation_type;
+        - sql:
+            sql: DROP TYPE IF EXISTS discount_type;
+        - sql:
+            sql: DROP TYPE IF EXISTS order_status;
+        - sql:
+            sql: DROP TYPE IF EXISTS product_status;
+        - sql:
+            sql: DROP TYPE IF EXISTS user_role;
+
+  - changeSet:
+      id: 001-create-users-table
+      author: marketplace
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: hashed_password
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: user_role
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: ix_users_email
+            tableName: users
+            columns:
+              - column:
+                  name: email
+      rollback:
+        - dropTable:
+            tableName: users
+
+  - changeSet:
+      id: 001-create-products-table
+      author: marketplace
+      changes:
+        - createTable:
+            tableName: products
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(4000)
+              - column:
+                  name: price
+                  type: DECIMAL(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: stock
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: product_status
+                  constraints:
+                    nullable: false
+              - column:
+                  name: seller_id
+                  type: UUID
+                  constraints:
+                    foreignKeyName: fk_products_seller
+                    references: users(id)
+                    deleteCascade: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: ALTER TABLE products ADD CONSTRAINT check_products_price_positive CHECK (price > 0);
+        - sql:
+            sql: ALTER TABLE products ADD CONSTRAINT check_products_stock_non_negative CHECK (stock >= 0);
+        - createIndex:
+            indexName: ix_products_status
+            tableName: products
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: ix_products_category
+            tableName: products
+            columns:
+              - column:
+                  name: category
+        - createIndex:
+            indexName: ix_products_seller_id
+            tableName: products
+            columns:
+              - column:
+                  name: seller_id
+      rollback:
+        - dropTable:
+            tableName: products
+
+  - changeSet:
+      id: 001-create-promo-codes-table
+      author: marketplace
+      changes:
+        - createTable:
+            tableName: promo_codes
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: code
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: discount_type
+                  type: discount_type
+                  constraints:
+                    nullable: false
+              - column:
+                  name: discount_value
+                  type: DECIMAL(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: min_order_amount
+                  type: DECIMAL(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_uses
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: current_uses
+                  type: INTEGER
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valid_from
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: valid_until
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: |
+              ALTER TABLE promo_codes ADD CONSTRAINT check_promo_discount_value_positive CHECK (discount_value > 0);
+              ALTER TABLE promo_codes ADD CONSTRAINT check_promo_min_order_non_negative CHECK (min_order_amount >= 0);
+              ALTER TABLE promo_codes ADD CONSTRAINT check_promo_max_uses_positive CHECK (max_uses > 0);
+              ALTER TABLE promo_codes ADD CONSTRAINT check_promo_current_uses_non_negative CHECK (current_uses >= 0);
+              ALTER TABLE promo_codes ADD CONSTRAINT check_current_uses_not_exceed_max CHECK (current_uses <= max_uses);
+        - createIndex:
+            indexName: ix_promo_codes_code
+            tableName: promo_codes
+            columns:
+              - column:
+                  name: code
+      rollback:
+        - dropTable:
+            tableName: promo_codes
+
+  - changeSet:
+      id: 001-create-orders-table
+      author: marketplace
+      changes:
+        - createTable:
+            tableName: orders
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_orders_user
+                    references: users(id)
+                    deleteCascade: true
+              - column:
+                  name: status
+                  type: order_status
+                  constraints:
+                    nullable: false
+              - column:
+                  name: promo_code_id
+                  type: UUID
+                  constraints:
+                    foreignKeyName: fk_orders_promo_code
+                    references: promo_codes(id)
+                    deleteCascade: false
+              - column:
+                  name: total_amount
+                  type: DECIMAL(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: discount_amount
+                  type: DECIMAL(12,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: |
+              ALTER TABLE orders ADD CONSTRAINT check_orders_total_non_negative CHECK (total_amount >= 0);
+              ALTER TABLE orders ADD CONSTRAINT check_orders_discount_non_negative CHECK (discount_amount >= 0);
+        - createIndex:
+            indexName: ix_orders_user_id
+            tableName: orders
+            columns:
+              - column:
+                  name: user_id
+        - createIndex:
+            indexName: ix_orders_status
+            tableName: orders
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: ix_orders_user_status
+            tableName: orders
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: status
+      rollback:
+        - dropTable:
+            tableName: orders
+
+  - changeSet:
+      id: 001-create-order-items-table
+      author: marketplace
+      changes:
+        - createTable:
+            tableName: order_items
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: order_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_order_items_order
+                    references: orders(id)
+                    deleteCascade: true
+              - column:
+                  name: product_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_order_items_product
+                    references: products(id)
+                    deleteCascade: false
+              - column:
+                  name: quantity
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: price_at_order
+                  type: DECIMAL(12,2)
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: |
+              ALTER TABLE order_items ADD CONSTRAINT check_order_items_quantity_positive CHECK (quantity > 0);
+              ALTER TABLE order_items ADD CONSTRAINT check_order_items_price_positive CHECK (price_at_order > 0);
+        - createIndex:
+            indexName: ix_order_items_order_id
+            tableName: order_items
+            columns:
+              - column:
+                  name: order_id
+        - createIndex:
+            indexName: ix_order_items_product_id
+            tableName: order_items
+            columns:
+              - column:
+                  name: product_id
+      rollback:
+        - dropTable:
+            tableName: order_items
+
+  - changeSet:
+      id: 001-create-user-operations-table
+      author: marketplace
+      changes:
+        - createTable:
+            tableName: user_operations
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  defaultValueComputed: gen_random_uuid()
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_user_operations_user
+                    references: users(id)
+                    deleteCascade: true
+              - column:
+                  name: operation_type
+                  type: operation_type
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: ix_user_operations_user_id
+            tableName: user_operations
+            columns:
+              - column:
+                  name: user_id
+        - createIndex:
+            indexName: ix_user_operations_user_type
+            tableName: user_operations
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: operation_type
+      rollback:
+        - dropTable:
+            tableName: user_operations
+
+  - changeSet:
+      id: 001-create-triggers
+      author: marketplace
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: >
+              CREATE OR REPLACE FUNCTION update_updated_at_column()
+              RETURNS TRIGGER AS $$
+              BEGIN
+                  NEW.updated_at = CURRENT_TIMESTAMP;
+                  RETURN NEW;
+              END;
+              $$ language 'plpgsql'
+        - sql:
+            sql: CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+        - sql:
+            sql: CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+        - sql:
+            sql: CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+      rollback:
+        - sql:
+            sql: DROP TRIGGER IF EXISTS update_orders_updated_at ON orders
+        - sql:
+            sql: DROP TRIGGER IF EXISTS update_products_updated_at ON products
+        - sql:
+            sql: DROP TRIGGER IF EXISTS update_users_updated_at ON users
+        - sql:
+            sql: DROP FUNCTION IF EXISTS update_updated_at_column()

@@ -9,7 +9,7 @@ A comprehensive marketplace API built with FastAPI, PostgreSQL, and JWT authenti
 - ✅ **Complex Order Logic** - Rate limiting, stock management, promo codes
 - ✅ **JWT Authentication** - Access and refresh tokens
 - ✅ **Role-Based Access Control** - USER, SELLER, ADMIN roles
-- ✅ **Database Migrations** - Alembic for schema management
+- ✅ **Database Migrations** - Liquibase for schema management
 - ✅ **JSON Logging** - Structured API request logging
 - ✅ **Error Handling** - Comprehensive error codes and messages
 - ✅ **Docker Support** - Easy deployment with docker-compose
@@ -19,7 +19,7 @@ A comprehensive marketplace API built with FastAPI, PostgreSQL, and JWT authenti
 - **Framework**: FastAPI
 - **Database**: PostgreSQL 15
 - **ORM**: SQLAlchemy 2.0
-- **Migrations**: Alembic
+- **Migrations**: Liquibase
 - **Authentication**: JWT (python-jose)
 - **Validation**: Pydantic v2
 - **Containerization**: Docker & Docker Compose
@@ -28,10 +28,11 @@ A comprehensive marketplace API built with FastAPI, PostgreSQL, and JWT authenti
 
 ```
 marketplace/
-├── alembic/                    # Database migrations
-│   ├── versions/
-│   │   └── 001_initial_schema.py
-│   └── env.py
+├── liquibase/                  # Database migrations
+│   ├── changelog/
+│   │   ├── db.changelog-master.yaml
+│   │   └── 001-initial-schema.yaml
+│   └── liquibase.properties
 ├── app/
 │   ├── routers/               # API endpoints
 │   │   ├── auth.py           # Authentication
@@ -98,7 +99,12 @@ cp .env.example .env
 
 4. **Run migrations**:
 ```bash
-alembic upgrade head
+# Migrations run automatically with docker-compose
+# For manual migration:
+docker run --rm -v $(pwd)/liquibase:/liquibase/changelog \
+  liquibase/liquibase:4.25 \
+  --defaults-file=/liquibase/changelog/liquibase.properties \
+  update
 ```
 
 5. **Start the application**:
