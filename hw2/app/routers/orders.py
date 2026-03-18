@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List
 from uuid import UUID
@@ -46,7 +46,7 @@ def check_rate_limit(user_id: UUID, operation_type: OperationType, db: Session):
     )
 
     if last_operation:
-        time_diff = datetime.utcnow() - last_operation.created_at
+        time_diff = datetime.now(timezone.utc) - last_operation.created_at
         if time_diff < timedelta(minutes=settings.ORDER_RATE_LIMIT_MINUTES):
             raise OrderLimitExceededException(
                 operation_type.value,
@@ -122,7 +122,7 @@ def apply_promo_code(promo_code_str: str, total_amount: Decimal, db: Session):
     if promo_code.current_uses >= promo_code.max_uses:
         raise PromoCodeInvalidException("Promo code usage limit exceeded")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if now < promo_code.valid_from or now > promo_code.valid_until:
         raise PromoCodeInvalidException("Promo code has expired or not yet valid")
 
