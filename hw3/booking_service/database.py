@@ -23,13 +23,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def init_db():
-    """Initialize database - create all tables."""
-    try:
-        Base.metadata.create_all(bind=engine)
-        logger.info("Database initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        raise
+    """Initialize database - tables are created via Alembic migrations."""
+    # Note: Database schema is now managed by Alembic migrations
+    # Tables are created by running: alembic upgrade head
+    # This is done automatically in the Docker CMD
+    logger.info("Database connection ready (schema managed by Alembic)")
 
 
 def get_db() -> Generator[Session, None, None]:

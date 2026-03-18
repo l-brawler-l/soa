@@ -21,11 +21,11 @@ RUN python -m grpc_tools.protoc \
     --grpc_python_out=. \
     ./proto/flight_service.proto
 
-# Copy flight service code
+# Copy flight service code and alembic
 COPY flight_service/ ./flight_service/
 
 # Expose gRPC port
 EXPOSE 50051
 
-# Run the service
-CMD ["python", "-m", "flight_service.server"]
+# Run migrations then start service
+CMD ["sh", "-c", "cd flight_service && alembic upgrade head && cd .. && python -m flight_service.server"]

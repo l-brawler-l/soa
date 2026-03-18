@@ -35,14 +35,14 @@ logs-flight:
 
 test:
 	@echo "Installing dependencies..."
-	pip install -r requirements.txt
+	pip3 install -r requirements.txt
 	@echo "Generating protobuf code..."
-	python -m grpc_tools.protoc -I./proto --python_out=. --grpc_python_out=. ./proto/flight_service.proto
+	python3 -m grpc_tools.protoc -I./proto --python_out=. --grpc_python_out=. ./proto/flight_service.proto
 	@echo "Running tests..."
-	pytest tests/ -v --cov=flight_service --cov=booking_service
+	pytest tests/ -v
 
 proto:
-	python -m grpc_tools.protoc -I./proto --python_out=. --grpc_python_out=. ./proto/flight_service.proto
+	python3 -m grpc_tools.protoc -I./proto --python_out=. --grpc_python_out=. ./proto/flight_service.proto
 
 sample-data:
 	@echo "Adding sample flight data..."
@@ -67,4 +67,4 @@ status:
 
 health:
 	@echo "Checking service health..."
-	@curl -s http://localhost:8000/health | python -m json.tool || echo "Booking Service not responding"
+	@curl -s http://localhost:8000/health | python3 -m json.tool || echo "Booking Service not responding"

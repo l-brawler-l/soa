@@ -65,7 +65,7 @@ erDiagram
     }
 ```
 
-**Constraints:**
+**  :**
 - `BOOKINGS.seat_count > 0`
 - `BOOKINGS.total_price > 0`
 - `BOOKINGS.booking_id UNIQUE` - Ensures idempotency

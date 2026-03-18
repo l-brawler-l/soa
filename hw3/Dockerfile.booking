@@ -21,11 +21,11 @@ RUN python -m grpc_tools.protoc \
     --grpc_python_out=. \
     ./proto/flight_service.proto
 
-# Copy booking service code
+# Copy booking service code and alembic
 COPY booking_service/ ./booking_service/
 
 # Expose REST API port
 EXPOSE 8000
 
-# Run the service
-CMD ["uvicorn", "booking_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run migrations then start service
+CMD ["sh", "-c", "cd booking_service && alembic upgrade head && cd .. && uvicorn booking_service.main:app --host 0.0.0.0 --port 8000"]
