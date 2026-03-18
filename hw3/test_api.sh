@@ -34,7 +34,7 @@ print_test() {
 
 # Wait for services to be ready
 print_section "Waiting for services to start..."
-sleep 5
+sleep 1
 
 # Health check
 print_section "1. Health Check"

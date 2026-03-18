@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 import grpc
 from google.protobuf.timestamp_pb2 import Timestamp
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
 from .database import get_db
@@ -124,7 +124,7 @@ class FlightServiceServicer(flight_service_pb2_grpc.FlightServiceServicer):
                     try:
                         date_obj = datetime.strptime(request.date, '%Y-%m-%d').date()
                         query = query.filter(
-                            db.func.date(Flight.departure_time) == date_obj
+                            func.DATE(Flight.departure_time) == date_obj
                         )
                     except ValueError:
                         context.abort(

@@ -46,7 +46,7 @@ proto:
 
 sample-data:
 	@echo "Adding sample flight data..."
-	@sleep 5  # Wait for services to be ready
+	@sleep 1  # Wait for services to be ready
 	docker exec -i flight-db psql -U flight_user -d flight_db < sample_data.sql || true
 	@echo "Sample data added!"
 
@@ -68,3 +68,12 @@ status:
 health:
 	@echo "Checking service health..."
 	@curl -s http://localhost:8000/health | python3 -m json.tool || echo "Booking Service not responding"
+
+check-tables:
+	docker exec -it flight-db psql -U flight_user -d flight_db -c "\dt"
+
+check-flights:
+	docker exec flight-db psql -U flight_user -d flight_db -c "SELECT * FROM flights;"
+
+check-reservations:
+	docker exec flight-db psql -U flight_user -d flight_db -c "SELECT * FROM seat_reservations;"
