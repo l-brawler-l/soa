@@ -1,0 +1,112 @@
+services:
+  # PostgreSQL for Flight Service
+  flight-db:
+    image: postgres:15-alpine
+    container_name: flight-db
+    environment:
+      POSTGRES_DB: flight_db
+      POSTGRES_USER: flight_user
+      POSTGRES_PASSWORD: flight_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - flight_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flight_user -d flight_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL for Booking Service
+  booking-db:
+    image: postgres:15-alpine
+    container_name: booking-db
+    environment:
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: booking_user
+      POSTGRES_PASSWORD: booking_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - booking_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booking_user -d booking_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Flight Service (gRPC)
+  flight-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.flight
+    container_name: flight-service
+    environment:
+      - GRPC_PORT=50051
+      - DB_HOST=flight-db
+      - DB_PORT=5432
+      - DB_NAME=flight_db
+      - DB_USER=flight_user
+      - DB_PASSWORD=flight_pass
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CACHE_TTL=300
+      - API_KEY=flight-service-secret-key
+    ports:
+      - "50051:50051"
+    depends_on:
+      flight-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Booking Service (REST API)
+  booking-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.booking
+    container_name: booking-service
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DB_HOST=booking-db
+      - DB_PORT=5432
+      - DB_NAME=booking_db
+      - DB_USER=booking_user
+      - DB_PASSWORD=booking_pass
+      - FLIGHT_SERVICE_HOST=flight-service
+      - FLIGHT_SERVICE_PORT=50051
+      - FLIGHT_SERVICE_API_KEY=flight-service-secret-key
+      - RETRY_MAX_ATTEMPTS=3
+      - RETRY_INITIAL_BACKOFF_MS=100
+      - CIRCUIT_BREAKER_FAILURE_THRESHOLD=5
+      - CIRCUIT_BREAKER_TIMEOUT_SECONDS=30
+    ports:
+      - "8000:8000"
+    depends_on:
+      booking-db:
+        condition: service_healthy
+      flight-service:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  flight_db_data:
+  booking_db_data:
+  redis_data:

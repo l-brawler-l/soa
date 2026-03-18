@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package flight;
+
+import "google/protobuf/timestamp.proto";
+
+// Flight Service - manages flights and seat reservations
+service FlightService {
+  // Search for flights by route and optional date
+  rpc SearchFlights(SearchFlightsRequest) returns (SearchFlightsResponse);
+
+  // Get flight information by ID
+  rpc GetFlight(GetFlightRequest) returns (Flight);
+
+  // Reserve seats for a booking (atomic operation)
+  rpc ReserveSeats(ReserveSeatsRequest) returns (ReserveSeatsResponse);
+
+  // Release a reservation and return seats
+  rpc ReleaseReservation(ReleaseReservationRequest) returns (ReleaseReservationResponse);
+}
+
+// Flight status enum
+enum FlightStatus {
+  FLIGHT_STATUS_UNSPECIFIED = 0;
+  SCHEDULED = 1;
+  DEPARTED = 2;
+  CANCELLED = 3;
+  COMPLETED = 4;
+}
+
+// Seat reservation status enum
+enum ReservationStatus {
+  RESERVATION_STATUS_UNSPECIFIED = 0;
+  ACTIVE = 1;
+  RELEASED = 2;
+  EXPIRED = 3;
+}
+
+// Flight message
+message Flight {
+  int64 id = 1;
+  string flight_number = 2;
+  string airline = 3;
+  string origin = 4;  // IATA code (e.g., SVO)
+  string destination = 5;  // IATA code (e.g., LED)
+  google.protobuf.Timestamp departure_time = 6;
+  google.protobuf.Timestamp arrival_time = 7;
+  int32 total_seats = 8;
+  int32 available_seats = 9;
+  double price = 10;
+  FlightStatus status = 11;
+}
+
+// Search flights request
+message SearchFlightsRequest {
+  string origin = 1;
+  string destination = 2;
+  optional string date = 3;  // Format: YYYY-MM-DD
+}
+
+// Search flights response
+message SearchFlightsResponse {
+  repeated Flight flights = 1;
+}
+
+// Get flight request
+message GetFlightRequest {
+  int64 flight_id = 1;
+}
+
+// Reserve seats request
+message ReserveSeatsRequest {
+  int64 flight_id = 1;
+  int32 seat_count = 2;
+  string booking_id = 3;  // For idempotency
+}
+
+// Reserve seats response
+message ReserveSeatsResponse {
+  int64 reservation_id = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+// Release reservation request
+message ReleaseReservationRequest {
+  string booking_id = 1;
+}
+
+// Release reservation response
+message ReleaseReservationResponse {
+  bool success = 1;
+  string message = 2;
+}

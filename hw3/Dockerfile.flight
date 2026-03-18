@@ -1,0 +1,31 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy proto files and generate code
+COPY proto/ ./proto/
+RUN python -m grpc_tools.protoc \
+    -I./proto \
+    --python_out=. \
+    --grpc_python_out=. \
+    ./proto/flight_service.proto
+
+# Copy flight service code
+COPY flight_service/ ./flight_service/
+
+# Expose gRPC port
+EXPOSE 50051
+
+# Run the service
+CMD ["python", "-m", "flight_service.server"]
