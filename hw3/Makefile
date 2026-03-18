@@ -69,11 +69,11 @@ health:
 	@echo "Checking service health..."
 	@curl -s http://localhost:8000/health | python3 -m json.tool || echo "Booking Service not responding"
 
-check-tables:
-	docker exec -it flight-db psql -U flight_user -d flight_db -c "\dt"
-
 check-flights:
 	docker exec flight-db psql -U flight_user -d flight_db -c "SELECT * FROM flights;"
 
 check-reservations:
 	docker exec flight-db psql -U flight_user -d flight_db -c "SELECT * FROM seat_reservations;"
+
+check-bookings:
+	docker exec -it booking-db psql -U booking_user -d booking_db -c "SELECT * FROM bookings;"
