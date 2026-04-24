@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements-aggregation-service.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY aggregation_service/ aggregation_service/
+COPY alembic/ alembic/
+COPY alembic.ini alembic.ini
+
+EXPOSE 8001
+
+CMD ["uvicorn", "aggregation_service.main:app", "--host", "0.0.0.0", "--port", "8001"]

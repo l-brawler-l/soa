@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.env
+.venv/
+venv/
+*.pyc
+.pytest_cache/
+movie_service/proto/movie_events_pb2.py
+movie_service/proto/*_pb2*.py

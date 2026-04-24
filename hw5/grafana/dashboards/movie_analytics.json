@@ -1,0 +1,181 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Retention Cohort Heatmap",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "center"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 20 },
+              { "color": "yellow", "value": 40 },
+              { "color": "green", "value": 60 },
+              { "color": "dark-green", "value": 80 }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Cohort" },
+            "properties": [
+              { "id": "custom.width", "value": 120 }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT cohort_date AS Cohort, round(argMax(if(day_offset = 0, retention_rate, 0), computed_at), 1) AS `Day 0`, round(argMax(if(day_offset = 1, retention_rate, 0), computed_at), 1) AS `Day 1`, round(argMax(if(day_offset = 2, retention_rate, 0), computed_at), 1) AS `Day 2`, round(argMax(if(day_offset = 3, retention_rate, 0), computed_at), 1) AS `Day 3`, round(argMax(if(day_offset = 4, retention_rate, 0), computed_at), 1) AS `Day 4`, round(argMax(if(day_offset = 5, retention_rate, 0), computed_at), 1) AS `Day 5`, round(argMax(if(day_offset = 6, retention_rate, 0), computed_at), 1) AS `Day 6`, round(argMax(if(day_offset = 7, retention_rate, 0), computed_at), 1) AS `Day 7` FROM movie_analytics.daily_retention GROUP BY cohort_date ORDER BY cohort_date DESC LIMIT 30",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "DAU (Daily Active Users)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "pointSize": 5,
+            "showPoints": "auto"
+          }
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT event_date AS time, argMax(dau, computed_at) AS DAU FROM movie_analytics.daily_active_users GROUP BY event_date ORDER BY event_date",
+          "format": "timeseries",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "View Conversion Rate (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT event_date AS time, argMax(conversion_rate, computed_at) AS `Conversion %` FROM movie_analytics.daily_view_conversion GROUP BY event_date ORDER BY event_date",
+          "format": "timeseries",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Top 10 Movies by Views",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0,
+        "showValue": "auto"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT movie_id AS Movie, sum(view_count) AS Views FROM movie_analytics.daily_top_movies WHERE event_date >= today() - 7 GROUP BY movie_id ORDER BY Views DESC LIMIT 10",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Average View Duration (seconds)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15
+          },
+          "unit": "s"
+        }
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT event_date AS time, argMax(avg_duration, computed_at) AS `Avg Duration` FROM movie_analytics.daily_avg_view_duration GROUP BY event_date ORDER BY event_date",
+          "format": "timeseries",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Device Distribution",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 26 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right" },
+        "pieType": "donut"
+      },
+      "targets": [
+        {
+          "rawSql": "SELECT device_type AS Device, sum(user_count) AS Users FROM movie_analytics.daily_device_distribution WHERE event_date >= today() - 7 GROUP BY device_type ORDER BY Users DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["movie-analytics", "cinema"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "utc",
+  "title": "Movie Analytics Dashboard",
+  "uid": "movie-analytics-main",
+  "version": 1
+}

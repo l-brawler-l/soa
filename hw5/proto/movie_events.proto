@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package movie_events;
+
+import "google/protobuf/timestamp.proto";
+
+// Event types for user actions
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  VIEW_STARTED = 1;
+  VIEW_FINISHED = 2;
+  VIEW_PAUSED = 3;
+  VIEW_RESUMED = 4;
+  LIKED = 5;
+  SEARCHED = 6;
+}
+
+// Device types
+enum DeviceType {
+  DEVICE_TYPE_UNSPECIFIED = 0;
+  MOBILE = 1;
+  DESKTOP = 2;
+  TV = 3;
+  TABLET = 4;
+}
+
+// Movie event message published to Kafka topic "movie-events"
+// Partition key: user_id — ensures all events from the same user
+// land in the same partition, preserving per-user event ordering
+// (important for session-based analytics like VIEW_STARTED -> VIEW_FINISHED).
+message MovieEvent {
+  string event_id = 1;          // UUID - unique event identifier
+  string user_id = 2;           // User identifier (partition key)
+  string movie_id = 3;          // Movie identifier
+  EventType event_type = 4;     // Type of user action
+  google.protobuf.Timestamp timestamp = 5;  // Event time (UTC)
+  DeviceType device_type = 6;   // Device used
+  string session_id = 7;        // Session identifier
+  int32 progress_seconds = 8;   // View progress in seconds (for view events)
+}
