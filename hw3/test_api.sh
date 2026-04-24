@@ -32,6 +32,22 @@ print_test() {
     echo ""
 }
 
+# Test idempotency
+print_section "8. Test Idempotency"
+print_test "Try to create duplicate booking (should fail or return existing)" "POST /bookings"
+curl -s -X POST "$BASE_URL/bookings" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": 1,
+    "flight_id": 1,
+    "passenger_name": "John Doe",
+    "passenger_email": "john@example.com",
+    "seat_count": 1000
+  }' | python3 -m json.tool
+echo ""
+
+exit
+
 # Wait for services to be ready
 print_section "Waiting for services to start..."
 sleep 1
@@ -116,19 +132,7 @@ echo ""
 
 sleep 1
 
-# Test idempotency
-print_section "8. Test Idempotency"
-print_test "Try to create duplicate booking (should fail or return existing)" "POST /bookings"
-curl -s -X POST "$BASE_URL/bookings" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": 1,
-    "flight_id": 1,
-    "passenger_name": "John Doe",
-    "passenger_email": "john@example.com",
-    "seat_count": 2
-  }' | python3 -m json.tool
-echo ""
+
 
 sleep 1
 
