@@ -62,6 +62,9 @@ test-event:
 # Check service health
 health:
 	@echo "Movie Service:"
-	@curl -s http://localhost:8000/health | python3 -m json.tool
+	@curl -s http://localhost:8000/health
 	@echo "\nAggregation Service:"
-	@curl -s http://localhost:8001/health | python3 -m json.tool
+	@curl -s http://localhost:8001/health
+
+get-schema:
+	@curl http://localhost:8081/subjects/movie-events-value/versions/latest

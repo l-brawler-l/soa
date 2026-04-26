@@ -113,6 +113,8 @@ make test
 
 Access at http://localhost:3000 (admin/admin).
 
+http://localhost:3000/d/movie-analytics-main/movie-analytics-dashboard?orgId=1&from=now-30d&to=now
+
 Panels:
 1. **Retention Cohort Heatmap** — Cohort analysis table
 2. **DAU** — Daily active users over time
