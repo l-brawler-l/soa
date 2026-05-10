@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package warehouse_events;
+
+import "google/protobuf/timestamp.proto";
+
+// Event types for warehouse operations
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  PRODUCT_RECEIVED = 1;
+  PRODUCT_SHIPPED = 2;
+  PRODUCT_MOVED = 3;
+  PRODUCT_RESERVED = 4;
+  PRODUCT_RELEASED = 5;
+  INVENTORY_COUNTED = 6;
+  ORDER_CREATED = 7;
+  ORDER_COMPLETED = 8;
+}
+
+// A single order item (used in ORDER_CREATED / ORDER_COMPLETED)
+message OrderItem {
+  string product_id = 1;
+  string zone_id = 2;
+  int32 quantity = 3;
+}
+
+// V1 warehouse event published to Kafka topic "warehouse-events"
+// Partition key: product_id — ensures all events for the same product
+// land in the same partition, preserving per-product event ordering.
+message WarehouseEvent {
+  string event_id = 1;                        // UUID - unique event identifier
+  EventType event_type = 2;                   // Type of warehouse operation
+  google.protobuf.Timestamp timestamp = 3;    // Event time (UTC)
+  int64 sequence_number = 4;                  // Monotonic sequence for ordering
+
+  // Fields for product operations
+  string product_id = 5;                      // SKU / product identifier
+  string zone_id = 6;                         // Zone identifier (source zone for MOVE)
+  int32 quantity = 7;                         // Quantity affected
+
+  // Fields for PRODUCT_MOVED
+  string to_zone_id = 8;                      // Destination zone for MOVE
+
+  // Fields for ORDER events
+  string order_id = 9;                        // Order identifier
+  repeated OrderItem items = 10;              // Order line items
+
+  // V2 field: supplier_id (backward compatible, optional)
+  // Added in schema evolution - V1 events will have this as empty string (default)
+  string supplier_id = 11;
+}

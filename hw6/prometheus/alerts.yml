@@ -1,0 +1,29 @@
+groups:
+  - name: consumer_alerts
+    rules:
+      - alert: HighConsumerLag
+        expr: consumer_lag > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High consumer lag on partition {{ $labels.partition }}"
+          description: "Consumer lag is {{ $value }} on partition {{ $labels.partition }}"
+
+      - alert: CassandraWriteErrors
+        expr: rate(cassandra_write_errors_total[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Cassandra write errors detected"
+          description: "Cassandra write error rate is {{ $value }}/s"
+
+      - alert: ConsumerDisconnected
+        expr: consumer_connected == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Consumer disconnected from Kafka"
+          description: "The warehouse consumer is not connected to Kafka"

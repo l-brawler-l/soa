@@ -14,8 +14,8 @@ build:
 
 # Run integration tests (services must be running)
 test:
-	pip install -r requirements-tests.txt
-	cd .. && python -m pytest hw5/tests/ -v --tb=short
+# 	pip install -r requirements-tests.txt
+	cd .. && python3 -m pytest hw5/tests/ -v --tb=short
 
 # View logs
 logs:

@@ -1,0 +1,26 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements-wms-service.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy proto files and generate Python code
+COPY proto/ proto/
+COPY wms_service/ wms_service/
+
+# Generate protobuf Python code
+RUN python -m grpc_tools.protoc \
+    --proto_path=proto \
+    --python_out=wms_service/proto \
+    proto/warehouse_events.proto
+
+EXPOSE 8000
+
+CMD ["uvicorn", "wms_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
